@@ -4,12 +4,14 @@ import 'package:sqflite/sqflite.dart';
 import '../models/chamado.dart';
 
 class ChamadoDatabase {
+  // Define o nome, versão e tabela principal do banco local.
   static const _databaseName = 'sos_cidade.db';
   static const _databaseVersion = 1;
   static const tableChamados = 'chamados';
 
   Database? _database;
 
+  // Abre ou cria o banco de dados local com a tabela de chamados.
   Future<void> init() async {
     final databasesPath = await getDatabasesPath();
     final path = p.join(databasesPath, _databaseName);
@@ -36,6 +38,7 @@ class ChamadoDatabase {
   }
 
   Database get _db {
+    // Garante acesso seguro ao banco já inicializado.
     final database = _database;
     if (database == null) {
       throw StateError('Banco de dados nao inicializado.');
@@ -43,16 +46,19 @@ class ChamadoDatabase {
     return database;
   }
 
+  // Carrega todos os chamados salvos.
   Future<List<Chamado>> findAll() async {
     final rows = await _db.query(tableChamados);
     return rows.map(Chamado.fromMap).toList();
   }
 
+  // Retorna a quantidade total de chamados cadastrados.
   Future<int> count() async {
     final result = Sqflite.firstIntValue(await _db.rawQuery('SELECT COUNT(*) FROM $tableChamados'));
     return result ?? 0;
   }
 
+  // Insere dados iniciais somente se o banco estiver vazio.
   Future<void> seedIfEmpty(List<Chamado> chamados) async {
     final total = await count();
     if (total > 0) return;
@@ -64,6 +70,7 @@ class ChamadoDatabase {
     await batch.commit(noResult: true);
   }
 
+  // Insere um novo chamado no banco.
   Future<int> insert(Chamado chamado) async {
     return _db.insert(
       tableChamados,
@@ -72,6 +79,7 @@ class ChamadoDatabase {
     );
   }
 
+  // Atualiza um chamado já existente.
   Future<int> update(Chamado chamado) async {
     return _db.update(
       tableChamados,
@@ -81,6 +89,7 @@ class ChamadoDatabase {
     );
   }
 
+  // Remove um chamado pelo id.
   Future<int> delete(int id) async {
     return _db.delete(
       tableChamados,
@@ -89,6 +98,7 @@ class ChamadoDatabase {
     );
   }
 
+  // Verifica se já existe um título repetido no banco.
   Future<bool> existsTitulo(String titulo, {int? ignoreId}) async {
     final result = await _db.query(
       tableChamados,

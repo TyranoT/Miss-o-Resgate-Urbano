@@ -7,11 +7,62 @@ enum CategoriaChamado {
   desastreNatural,
 }
 
+extension CategoriaChamadoLabel on CategoriaChamado {
+  // Retorna o rótulo amigável da categoria para exibição na interface.
+  String get label {
+    switch (this) {
+      case CategoriaChamado.transito:
+        return 'trânsito';
+      case CategoriaChamado.iluminacao:
+        return 'iluminação';
+      case CategoriaChamado.saneamento:
+        return 'saneamento';
+      case CategoriaChamado.seguranca:
+        return 'segurança';
+      case CategoriaChamado.limpezaUrbana:
+        return 'limpeza urbana';
+      case CategoriaChamado.desastreNatural:
+        return 'desastre natural';
+    }
+  }
+}
+
 enum PrioridadeChamado { baixa, media, alta, critica }
+
+extension PrioridadeChamadoLabel on PrioridadeChamado {
+  // Retorna o rótulo amigável da prioridade para exibição na interface.
+  String get label {
+    switch (this) {
+      case PrioridadeChamado.baixa:
+        return 'baixa';
+      case PrioridadeChamado.media:
+        return 'média';
+      case PrioridadeChamado.alta:
+        return 'alta';
+      case PrioridadeChamado.critica:
+        return 'crítica';
+    }
+  }
+}
 
 enum StatusChamado { aberto, emAndamento, concluido }
 
+extension StatusChamadoLabel on StatusChamado {
+  // Retorna o rótulo amigável do status para exibição na interface.
+  String get label {
+    switch (this) {
+      case StatusChamado.aberto:
+        return 'aberto';
+      case StatusChamado.emAndamento:
+        return 'em andamento';
+      case StatusChamado.concluido:
+        return 'concluído';
+    }
+  }
+}
+
 class Chamado {
+  // Cria uma instância de chamado com todos os campos de domínio.
   Chamado({
     required this.id,
     required this.titulo,
@@ -35,6 +86,7 @@ class Chamado {
   final StatusChamado status;
 
   Chamado copyWith({
+    // Gera uma cópia do chamado preservando os valores não informados.
     int? id,
     String? titulo,
     String? descricao,
@@ -60,6 +112,7 @@ class Chamado {
 
   bool get isConcluido => status == StatusChamado.concluido;
 
+  // Converte o chamado em um mapa para salvar no SQLite.
   Map<String, Object?> toMap() {
     return {
       'id': id,
@@ -74,6 +127,7 @@ class Chamado {
     };
   }
 
+  // Reconstrói um chamado a partir de um registro do banco.
   factory Chamado.fromMap(Map<String, Object?> map) {
     return Chamado(
       id: map['id'] as int?,
