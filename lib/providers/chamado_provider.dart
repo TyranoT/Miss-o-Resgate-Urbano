@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../data/chamado_database.dart';
 import '../models/chamado.dart';
+import '../validators/chamado_validators.dart';
 
 class ChamadoProvider extends ChangeNotifier {
+  // Recebe o banco local para controlar a camada de estado e regras.
   ChamadoProvider(this._database);
 
   final ChamadoDatabase _database;
@@ -35,6 +37,7 @@ class ChamadoProvider extends ChangeNotifier {
   int get criticos => _chamados.where((c) => c.prioridade == PrioridadeChamado.critica).length;
   bool get hasAlertaCritico => criticos > 5;
 
+  // Carrega os chamados persistidos e aplica os dados iniciais se necessário.
   Future<void> loadChamados() async {
     _setLoading(true);
     try {
@@ -84,23 +87,25 @@ class ChamadoProvider extends ChangeNotifier {
     }
   }
 
+  // Salva um chamado novo ou atualiza um existente respeitando as regras do sistema.
   Future<String?> salvarChamado(Chamado chamado) async {
-    final tituloNormalizado = chamado.titulo.trim();
-    if (tituloNormalizado.isEmpty) return 'Informe o título.';
-    if (chamado.descricao.trim().isEmpty) return 'A descrição não pode ficar vazia.';
-    if (chamado.bairro.trim().isEmpty) return 'Informe o bairro.';
-
     try {
-      final existeTitulo = await _database.existsTitulo(tituloNormalizado, ignoreId: chamado.id);
-      if (existeTitulo) return 'Já existe um chamado com esse título.';
+      final existeTitulo = await _database.existsTitulo(chamado.titulo.trim(), ignoreId: chamado.id);
+      final atual = chamado.id == null ? null : _chamados.firstWhere((item) => item.id == chamado.id);
+
+      final erroValidacao = validateChamadoCompleto(
+        titulo: chamado.titulo,
+        descricao: chamado.descricao,
+        bairro: chamado.bairro,
+        tituloRepetido: existeTitulo,
+        concluido: atual?.isConcluido ?? false,
+      );
+      if (erroValidacao != null) return erroValidacao;
 
       if (chamado.id == null) {
         final novoId = await _database.insert(chamado);
         _chamados.add(chamado.copyWith(id: novoId));
       } else {
-        final atual = _chamados.firstWhere((item) => item.id == chamado.id);
-        if (atual.isConcluido) return 'Chamados concluídos não podem ser editados.';
-
         await _database.update(chamado);
         final index = _chamados.indexWhere((item) => item.id == chamado.id);
         _chamados[index] = chamado;
@@ -113,22 +118,49 @@ class ChamadoProvider extends ChangeNotifier {
     }
   }
 
+  // Fecha um chamado resolvido e impede novas edições por regra de negócio.
+  Future<String?> fecharChamado(int id) async {
+    try {
+      final index = _chamados.indexWhere((item) => item.id == id);
+      if (index == -1) {
+        return 'Chamado não encontrado.';
+      }
+
+      final atual = _chamados[index];
+      if (atual.isConcluido) {
+        return 'Esse chamado já está concluído.';
+      }
+
+      final concluido = atual.copyWith(status: StatusChamado.concluido);
+      await _database.update(concluido);
+      _chamados[index] = concluido;
+      _notify();
+      return null;
+    } catch (e) {
+      return 'Não foi possível fechar o chamado: $e';
+    }
+  }
+
+  // Remove um chamado da lista em memória e do banco.
   Future<void> excluirChamado(int id) async {
     await _database.delete(id);
     _chamados.removeWhere((item) => item.id == id);
     _notify();
   }
 
+  // Atualiza o estado de carregamento e notifica os listeners.
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();
   }
 
+  // Faz uma notificação limpa após operações bem-sucedidas.
   void _notify() {
     _error = null;
     notifyListeners();
   }
 
+  // Define o peso de prioridade para ordenar a lista corretamente.
   int _prioridadePeso(PrioridadeChamado prioridade) {
     switch (prioridade) {
       case PrioridadeChamado.baixa:

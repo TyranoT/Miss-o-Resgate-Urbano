@@ -1,0 +1,175 @@
+[1mdiff --git a/lib/screens/chamado_form_page.dart b/lib/screens/chamado_form_page.dart[m
+[1mindex d54e648..a362e6f 100644[m
+[1m--- a/lib/screens/chamado_form_page.dart[m
+[1m+++ b/lib/screens/chamado_form_page.dart[m
+[36m@@ -3,8 +3,10 @@[m [mimport 'package:provider/provider.dart';[m
+ [m
+ import '../models/chamado.dart';[m
+ import '../providers/chamado_provider.dart';[m
+[32m+[m[32mimport '../validators/chamado_validators.dart';[m
+ [m
+ class ChamadoFormPage extends StatefulWidget {[m
+[32m+[m[32m  // Cria a tela de cadastro ou edição de chamado.[m
+   const ChamadoFormPage({super.key, this.chamado});[m
+ [m
+   final Chamado? chamado;[m
+[36m@@ -29,6 +31,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+ [m
+   @override[m
+   void initState() {[m
+[32m+[m[32m    // Inicializa os campos com dados existentes ou valores padrão.[m
+     super.initState();[m
+     final chamado = widget.chamado;[m
+     _tituloController = TextEditingController(text: chamado?.titulo ?? '');[m
+[36m@@ -43,6 +46,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+ [m
+   @override[m
+   void dispose() {[m
+[32m+[m[32m    // Libera os controladores de texto para evitar leaks.[m
+     _tituloController.dispose();[m
+     _descricaoController.dispose();[m
+     _bairroController.dispose();[m
+[36m@@ -52,6 +56,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+ [m
+   @override[m
+   Widget build(BuildContext context) {[m
+[32m+[m[32m    // Constrói o formulário com validação e botão de ação.[m
+     final provider = context.watch<ChamadoProvider>();[m
+     final chamadoAtual = widget.chamado;[m
+ [m
+[36m@@ -82,7 +87,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+                     value: _categoria,[m
+                     items: CategoriaChamado.values,[m
+                     onChanged: (value) => setState(() => _categoria = value!),[m
+[31m-                    itemLabel: (value) => value.name,[m
+[32m+[m[32m                    itemLabel: (value) => value.label,[m
+                     enabled: !(chamadoAtual?.isConcluido ?? false),[m
+                   ),[m
+                   _DropdownField<PrioridadeChamado>([m
+[36m@@ -90,7 +95,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+                     value: _prioridade,[m
+                     items: PrioridadeChamado.values,[m
+                     onChanged: (value) => setState(() => _prioridade = value!),[m
+[31m-                    itemLabel: (value) => value.name,[m
+[32m+[m[32m                    itemLabel: (value) => value.label,[m
+                     enabled: !(chamadoAtual?.isConcluido ?? false),[m
+                   ),[m
+                   _TextField(controller: _bairroController, label: 'Bairro', enabled: !(chamadoAtual?.isConcluido ?? false)),[m
+[36m@@ -100,7 +105,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+                     value: _status,[m
+                     items: StatusChamado.values,[m
+                     onChanged: (value) => setState(() => _status = value!),[m
+[31m-                    itemLabel: (value) => value.name,[m
+[32m+[m[32m                    itemLabel: (value) => value.label,[m
+                     enabled: !(chamadoAtual?.isConcluido ?? false),[m
+                   ),[m
+                   const SizedBox(height: 8),[m
+[36m@@ -192,6 +197,7 @@[m [mclass _ChamadoFormPageState extends State<ChamadoFormPage> {[m
+ }[m
+ [m
+ class _TextField extends StatelessWidget {[m
+[32m+[m[32m  // Cria um campo de texto reutilizável com validação por rótulo.[m
+   const _TextField({required this.controller, required this.label, this.maxLines = 1, this.enabled = true});[m
+ [m
+   final TextEditingController controller;[m
+[36m@@ -201,6 +207,7 @@[m [mclass _TextField extends StatelessWidget {[m
+ [m
+   @override[m
+   Widget build(BuildContext context) {[m
+[32m+[m[32m    // Renderiza o TextFormField com a regra de validação correspondente.[m
+     return Padding([m
+       padding: const EdgeInsets.only(bottom: 12),[m
+       child: TextFormField([m
+[36m@@ -209,15 +216,10 @@[m [mclass _TextField extends StatelessWidget {[m
+         maxLines: maxLines,[m
+         decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),[m
+         validator: (value) {[m
+[31m-          if (label == 'Título' && (value == null || value.trim().isEmpty)) {[m
+[31m-            return 'Informe o título.';[m
+[31m-          }[m
+[31m-          if (label == 'Descrição' && (value == null || value.trim().isEmpty)) {[m
+[31m-            return 'A descrição não pode ficar vazia.';[m
+[31m-          }[m
+[31m-          if (label == 'Bairro' && (value == null || value.trim().isEmpty)) {[m
+[31m-            return 'Informe o bairro.';[m
+[31m-          }[m
+[32m+[m[32m          final text = value ?? '';[m
+[32m+[m[32m          if (label == 'Título') return validateTitulo(text);[m
+[32m+[m[32m          if (label == 'Descrição') return validateDescricao(text);[m
+[32m+[m[32m          if (label == 'Bairro') return validateBairro(text);[m
+           return null;[m
+         },[m
+       ),[m
+[36m@@ -226,6 +228,7 @@[m [mclass _TextField extends StatelessWidget {[m
+ }[m
+ [m
+ class _DropdownField<T> extends StatelessWidget {[m
+[32m+[m[32m  // Cria um dropdown reutilizável para enums do formulário.[m
+   const _DropdownField({[m
+     required this.label,[m
+     required this.value,[m
+[36m@@ -244,10 +247,12 @@[m [mclass _DropdownField<T> extends StatelessWidget {[m
+ [m
+   @override[m
+   Widget build(BuildContext context) {[m
+[32m+[m[32m    // Renderiza a lista de seleção com o item atual marcado.[m
+     return Padding([m
+       padding: const EdgeInsets.only(bottom: 12),[m
+       child: DropdownButtonFormField<T>([m
+         value: value,[m
+[32m+[m[32m        isExpanded: true,[m
+         items: items[m
+             .map([m
+               (item) => DropdownMenuItem<T>([m
+[36m@@ -264,6 +269,7 @@[m [mclass _DropdownField<T> extends StatelessWidget {[m
+ }[m
+ [m
+ class _InfoBanner extends StatelessWidget {[m
+[32m+[m[32m  // Exibe uma mensagem visual de bloqueio ou aviso.[m
+   const _InfoBanner({required this.text, required this.icon});[m
+ [m
+   final String text;[m
+[36m@@ -271,6 +277,7 @@[m [mclass _InfoBanner extends StatelessWidget {[m
+ [m
+   @override[m
+   Widget build(BuildContext context) {[m
+[32m+[m[32m    // Renderiza o banner com ícone e texto de alerta.[m
+     return Container([m
+       width: double.infinity,[m
+       padding: const EdgeInsets.all(12),[m
+[1mdiff --git a/lib/validators/chamado_validators.dart b/lib/validators/chamado_validators.dart[m
+[1mnew file mode 100644[m
+[1mindex 0000000..e57329b[m
+[1m--- /dev/null[m
+[1m+++ b/lib/validators/chamado_validators.dart[m
+[36m@@ -0,0 +1,51 @@[m
+[32m+[m[32m// Valida se o título foi preenchido.[m
+[32m+[m[32mString? validateTitulo(String value) {[m
+[32m+[m[32m  if (value.trim().isEmpty) {[m
+[32m+[m[32m    return 'Informe o título.';[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return null;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// Valida se a descrição foi preenchida.[m
+[32m+[m[32mString? validateDescricao(String value) {[m
+[32m+[m[32m  if (value.trim().isEmpty) {[m
+[32m+[m[32m    return 'A descrição não pode ficar vazia.';[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return null;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// Valida se o bairro foi preenchido.[m
+[32m+[m[32mString? validateBairro(String value) {[m
+[32m+[m[32m  if (value.trim().isEmpty) {[m
+[32m+[m[32m    return 'Informe o bairro.';[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return null;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// Valida o chamado completo com as regras principais do cadastro.[m
+[32m+[m[32mString? validateChamadoCompleto({[m
+[32m+[m[32m  required String titulo,[m
+[32m+[m[32m  required String descricao,[m
+[32m+[m[32m  required String bairro,[m
+[32
