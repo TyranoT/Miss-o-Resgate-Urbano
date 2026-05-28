@@ -9,6 +9,7 @@ import '../providers/chamado_provider.dart';
 import 'chamado_form_page.dart';
 
 class DashboardPage extends StatefulWidget {
+  // Cria a tela principal com atualização de relógio em tempo real.
   const DashboardPage({super.key});
 
   @override
@@ -21,6 +22,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void initState() {
+    // Atualiza o horário exibido no cabeçalho a cada segundo.
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _now = DateTime.now());
@@ -29,12 +31,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   void dispose() {
+    // Cancela o timer para evitar vazamento de recursos.
     _timer.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Monta o dashboard com cards, alerta e lista de chamados.
     return Consumer<ChamadoProvider>(
       builder: (context, provider, _) {
         return SafeArea(
@@ -142,6 +146,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   );
                                 },
+                          onClose: chamado.isConcluido
+                              ? null
+                              : () async {
+                                  final erro = await provider.fecharChamado(chamado.id!);
+                                  if (!context.mounted) return;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(erro ?? 'Chamado fechado com sucesso.'),
+                                    ),
+                                  );
+                                },
                           onDelete: () => provider.excluirChamado(chamado.id!),
                         ),
                       );
@@ -158,6 +174,7 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 class _Header extends StatelessWidget {
+  // Cria o cabeçalho com nome do app, data e total de chamados.
   const _Header({required this.total, required this.now, required this.showAlert});
 
   final int total;
@@ -166,6 +183,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Renderiza o cartão principal com métricas e alerta crítico.
     final formatter = DateFormat('dd/MM/yyyy HH:mm:ss');
     return Container(
       margin: const EdgeInsets.all(16),
@@ -203,6 +221,7 @@ class _Header extends StatelessWidget {
 }
 
 class _HeaderMetric extends StatelessWidget {
+  // Exibe uma métrica resumida do cabeçalho.
   const _HeaderMetric({required this.label, required this.value});
 
   final String label;
@@ -210,6 +229,7 @@ class _HeaderMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mostra rótulo e valor com destaque visual.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -221,6 +241,7 @@ class _HeaderMetric extends StatelessWidget {
 }
 
 class _StatusCard extends StatelessWidget {
+  // Exibe os cards de status do dashboard.
   const _StatusCard({required this.title, required this.value, required this.color});
 
   final String title;
@@ -229,6 +250,7 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mostra a contagem por status com cor de referência.
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -249,14 +271,22 @@ class _StatusCard extends StatelessWidget {
 }
 
 class _ChamadoCard extends StatelessWidget {
-  const _ChamadoCard({required this.chamado, required this.onEdit, required this.onDelete});
+  // Exibe os dados resumidos de cada chamado na lista.
+  const _ChamadoCard({
+    required this.chamado,
+    required this.onEdit,
+    required this.onClose,
+    required this.onDelete,
+  });
 
   final Chamado chamado;
   final VoidCallback? onEdit;
+  final VoidCallback? onClose;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    // Monta o cartão com ícone, chips e ações de editar/excluir.
     final date = DateFormat('dd/MM HH:mm').format(chamado.dataAbertura);
     final elapsed = DateTime.now().difference(chamado.dataAbertura);
     final elapsedText = '${elapsed.inHours}h ${elapsed.inMinutes.remainder(60)}m';
@@ -276,9 +306,9 @@ class _ChamadoCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _Chip(text: chamado.categoria.name),
-              _Chip(text: chamado.prioridade.name),
-              _Chip(text: chamado.status.name),
+              _Chip(text: chamado.categoria.label),
+              _Chip(text: chamado.prioridade.label),
+              _Chip(text: chamado.status.label),
               _Chip(text: chamado.bairro),
               _Chip(text: date),
               _Chip(text: elapsedText),
@@ -288,10 +318,12 @@ class _ChamadoCard extends StatelessWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (value) {
             if (value == 'editar' && onEdit != null) onEdit!.call();
+            if (value == 'fechar' && onClose != null) onClose!.call();
             if (value == 'excluir') onDelete();
           },
           itemBuilder: (context) => [
             PopupMenuItem(value: 'editar', enabled: onEdit != null, child: const Text('Editar')),
+            PopupMenuItem(value: 'fechar', enabled: onClose != null, child: const Text('Fechar chamado')),
             const PopupMenuItem(value: 'excluir', child: Text('Excluir')),
           ],
         ),
@@ -299,6 +331,7 @@ class _ChamadoCard extends StatelessWidget {
     );
   }
 
+  // Define a cor principal de acordo com a prioridade.
   Color _priorityColor(PrioridadeChamado prioridade) {
     switch (prioridade) {
       case PrioridadeChamado.baixa:
@@ -312,6 +345,7 @@ class _ChamadoCard extends StatelessWidget {
     }
   }
 
+  // Escolhe um ícone representativo para a categoria do chamado.
   IconData _categoryIcon(CategoriaChamado categoria) {
     switch (categoria) {
       case CategoriaChamado.transito:
@@ -331,12 +365,14 @@ class _ChamadoCard extends StatelessWidget {
 }
 
 class _Chip extends StatelessWidget {
+  // Cria um marcador visual simples para metadados do chamado.
   const _Chip({required this.text});
 
   final String text;
 
   @override
   Widget build(BuildContext context) {
+    // Renderiza o chip com fundo suave.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(

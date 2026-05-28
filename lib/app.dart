@@ -7,6 +7,7 @@ class SosCidadeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Configura tema, título e rota inicial do app.
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SOS Cidade',

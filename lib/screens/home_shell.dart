@@ -4,6 +4,7 @@ import 'chamado_form_page.dart';
 import 'dashboard_page.dart';
 
 class HomeShell extends StatefulWidget {
+  // Cria a casca principal com navegação inferior.
   const HomeShell({super.key});
 
   @override
@@ -15,6 +16,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Alterna entre dashboard e formulário pelo índice selecionado.
     final pages = [const DashboardPage(), const ChamadoFormPage()];
 
     return Scaffold(
